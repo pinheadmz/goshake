@@ -1,55 +1,66 @@
 package util
 
+type Reader struct {
+	data []byte
+	offset uint64
+}
 
-func ReadU8(data []byte, offset *uint64) uint8 {
-	ret := data[*offset]
-	*offset += 1
+func (reader *Reader) Init(data []byte) {
+	reader.data = data
+	reader.offset = 0
+}
+
+func (reader *Reader) ReadU8() uint8 {
+	ret := reader.data[reader.offset]
+	reader.offset += 1
 	return ret
 }
 
-func ReadU16(data []byte, offset *uint64) uint16 {
-	ret := uint16(data[*offset] | data[*offset + 1] << 8)
-	*offset += 2
+func (reader *Reader) ReadU16() uint16 {
+	ret := uint16(reader.data[reader.offset] | reader.data[reader.offset + 1] << 8)
+	reader.offset += 2
 	return ret
 }
 
-func ReadU32(data []byte, offset *uint64) uint32 {
+func (reader *Reader) ReadU32() uint32 {
 	var ret uint32
-	ret |= uint32(data[*offset])
-	ret |= uint32(data[*offset + 1]) << 8
-	ret |= uint32(data[*offset + 2]) << 16
-	ret |= uint32(data[*offset + 3]) << 24
-	*offset += 4
+	ret |= uint32(reader.data[reader.offset])
+	ret |= uint32(reader.data[reader.offset + 1]) << 8
+	ret |= uint32(reader.data[reader.offset + 2]) << 16
+	ret |= uint32(reader.data[reader.offset + 3]) << 24
+	reader.offset += 4
 	return ret
 }
 
-func ReadU64(data []byte, offset *uint64) uint64 {
-	lo := ReadU32(data, offset)
-	hi := ReadU32(data, offset)
-	ret := uint64(lo | hi << 16)
+func (reader *Reader) ReadU64() uint64 {
+	lo := reader.ReadU32()
+	hi := reader.ReadU32()
+	var ret uint64
+	ret |= uint64(lo)
+	ret |= uint64(hi) << 32
 	return ret
 }
 
-func ReadVarInt(data []byte, offset *uint64) uint64 {
-	switch data[*offset] {
+func (reader *Reader) ReadVarInt() uint64 {
+	switch reader.data[reader.offset] {
 		case 0xff:
-			*offset += 1
-			return ReadU64(data, offset)
+			reader.offset += 1
+			return reader.ReadU64()
 		case 0xfe:
-			*offset += 1
-			return uint64(ReadU32(data, offset))
+			reader.offset += 1
+			return uint64(reader.ReadU32())
 		case 0xfd:
-			*offset += 1
-			return uint64(ReadU16(data, offset))
+			reader.offset += 1
+			return uint64(reader.ReadU16())
 		default:
-			ret := uint64(data[*offset])
-			*offset += 1
+			ret := uint64(reader.data[reader.offset])
+			reader.offset += 1
 			return ret
 	}
 }
 
-func ReadBytes(data []byte, offset *uint64, size uint64) []byte {
-	ret := data[*offset:*offset + size]
-	*offset += size
+func (reader *Reader) ReadBytes(size uint64) []byte {
+	ret := reader.data[reader.offset:reader.offset + size]
+	reader.offset += size
 	return ret
 }

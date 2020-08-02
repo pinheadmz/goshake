@@ -14,10 +14,10 @@ type Input struct {
 	sequence uint32
 }
 
-func (input *Input) Read(data []byte, offset *uint64) {
-	input.prevHash = util.ReadBytes(data, offset, 32)
-	input.prevIndex = util.ReadU32(data, offset)
-	input.sequence = util.ReadU32(data, offset)
+func (input *Input) Read(reader *util.Reader) {
+	input.prevHash = reader.ReadBytes(32)
+	input.prevIndex = reader.ReadU32()
+	input.sequence = reader.ReadU32()
 }
 
 func (input Input) Print() {
@@ -34,12 +34,12 @@ type Covenant struct {
 	items []*Item
 }
 
-func (cov *Covenant) Read(data []byte, offset *uint64) {
-	cov.covType = util.ReadU8(data, offset)
-	cov.itemsCount = util.ReadVarInt(data, offset)
+func (cov *Covenant) Read(reader *util.Reader) {
+	cov.covType = reader.ReadU8()
+	cov.itemsCount = reader.ReadVarInt()
 	for i := uint64(0); i < cov.itemsCount; i++ {
 		item := new(Item)
-		item.Read(data, offset)
+		item.Read(reader)
 		cov.items = append(cov.items, item)
 	}
 }
@@ -66,13 +66,13 @@ type Output struct {
 	covenant *Covenant
 }
 
-func (output *Output) Read(data []byte, offset *uint64) {
-	output.value = util.ReadU64(data, offset)
-	output.addrVersion = util.ReadU8(data, offset)
-	output.addrHashSize = util.ReadU8(data, offset)
-	output.addrHash = util.ReadBytes(data, offset, uint64(output.addrHashSize))
+func (output *Output) Read(reader *util.Reader) {
+	output.value = reader.ReadU64()
+	output.addrVersion = reader.ReadU8()
+	output.addrHashSize = reader.ReadU8()
+	output.addrHash = reader.ReadBytes(uint64(output.addrHashSize))
 	output.covenant = new(Covenant)
-	output.covenant.Read(data, offset)
+	output.covenant.Read(reader)
 }
 
 func (output Output) Print() {
@@ -90,11 +90,11 @@ type Witness struct {
 	items []*Item
 }
 
-func (wit *Witness) Read(data []byte, offset *uint64) {
-	wit.itemsCount = util.ReadVarInt(data, offset)
+func (wit *Witness) Read(reader *util.Reader) {
+	wit.itemsCount = reader.ReadVarInt()
 	for i := uint64(0); i < wit.itemsCount; i++ {
 		item := new(Item)
-		item.Read(data, offset)
+		item.Read(reader)
 		wit.items = append(wit.items, item)
 	}
 }
@@ -117,9 +117,9 @@ type Item struct {
 	data []byte
 }
 
-func (item *Item) Read(data []byte, offset *uint64) {
-	item.size = util.ReadVarInt(data, offset)
-	item.data = util.ReadBytes(data, offset, uint64(item.size))
+func (item *Item) Read(reader *util.Reader) {
+	item.size = reader.ReadVarInt()
+	item.data = reader.ReadBytes(uint64(item.size))
 }
 
 // TX
@@ -132,28 +132,28 @@ type TX struct {
 	witness []*Witness
 }
 
-func (tx *TX) Read(data []byte, offset *uint64) {
-	tx.version = util.ReadU32(data, offset)
+func (tx *TX) Read(reader *util.Reader) {
+	tx.version = reader.ReadU32()
 
-	incount := util.ReadVarInt(data, offset)
+	incount := reader.ReadVarInt()
 	for i := uint64(0); i < incount; i++ {
 		input := new(Input)
-		input.Read(data, offset)
+		input.Read(reader)
 		tx.inputs = append(tx.inputs, input)
 	}
 
-	outcount := util.ReadVarInt(data, offset)
+	outcount := reader.ReadVarInt()
 	for i := uint64(0); i < outcount; i++ {
 		output := new(Output)
-		output.Read(data, offset)
+		output.Read(reader)
 		tx.outputs = append(tx.outputs, output)
 	}
 
-	tx.locktime = util.ReadU32(data, offset)
+	tx.locktime = reader.ReadU32()
 
 	for i := uint64(0); i < incount; i++ {
 		witness := new(Witness)
-		witness.Read(data, offset)
+		witness.Read(reader)
 		tx.witness = append(tx.witness, witness)
 	}
 }

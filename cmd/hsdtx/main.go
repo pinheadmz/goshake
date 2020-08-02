@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 
 	"goshake/primitives"
+	"goshake/util"
 )
 
 func main() {
@@ -25,10 +26,12 @@ func main() {
 		panic(err)
 	}
 
-	var offset uint64
 	fmt.Printf("\n")
 
+	reader := new(util.Reader)
+	reader.Init(data[:])
+
 	tx := new(primitives.TX)
-	tx.Read(data[:], &offset)
+	tx.Read(reader)
 	tx.Print()
 }
